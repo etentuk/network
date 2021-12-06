@@ -1,5 +1,28 @@
 {% extends "network/layout.html" %}
+{% load static %}
 
 {% block body %}
-    TODO
+
+<div class="container">
+
+    <div id="new_post">
+        <form id="new_post">
+            {% csrf_token %}
+            <textarea name="post" class="form-control" id="post" cols="30" rows="10"></textarea>
+            <button type="submit" class="btn btn-primary mb-3">Post</button>
+        </form>
+
+    </div>
+</div>
+
+
+
+<div id="not-found">
+    <h1 id="nf-title">404 Not found</h1>
+    <h4 id="nf-body">The page you are looking for does not exist!</h4>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{% static 'network/network.js' %}"></script>
 {% endblock %}
