@@ -6,7 +6,19 @@ from django.db.models.fields.related import ForeignKey
 
 
 class User(AbstractUser):
-    pass
+    following = models.ManyToManyField(
+        "self", symmetrical=False, related_name="followers", blank=True
+    )
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+        }
+
+    def is_follower_valid(self):
+        return bool(self.following.filter(pk=self.id))
 
 
 class Post(models.Model):
@@ -22,7 +34,7 @@ class Post(models.Model):
         return {
             "id": self.id,
             "post": self.post,
-            "author": self.author.username,
+            "author": self.author.serialize(),
             "timestamp": self.timestamp.isoformat(),
             "likes": self.likes
         }

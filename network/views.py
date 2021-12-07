@@ -72,7 +72,6 @@ def post(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST request required."}, status=400)
     data = json.loads(request.body)
-    print(data)
     post = data.get("post", "")
     new_post = Post(post=post, author=request.user)
     new_post.save()
@@ -83,3 +82,14 @@ def posts(request):
     all_posts = Post.objects.all()
     all_posts = all_posts.order_by('-timestamp').all()
     return JsonResponse([p.serialize() for p in all_posts], safe=False)
+
+
+@ login_required
+def follow(request):
+    data = json.loads(request.body)
+    follower = request.user
+    follow_user = User.objects.get(pk=data.get("user_id"))
+    if(follow_user == follower):
+        return JsonResponse({"error": "User cannot follow Self"}, status=400)
+    follower.following.add(follow_user)
+    return JsonResponse({"message": "Following successful"})

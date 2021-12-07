@@ -9,8 +9,8 @@ function load_all_posts() {
 
     fetch("/posts")
         .then((response) => {
+            console.log("response", response);
             if (!response.ok) {
-                console.log(response);
                 throw new Error();
             }
             return response.json();
@@ -18,7 +18,6 @@ function load_all_posts() {
         .then((result) => {
             result.forEach((element) => {
                 const date = new Date(element.timestamp);
-                console.log(date);
                 document.getElementById("all_posts_list").insertAdjacentHTML(
                     "beforeend",
                     `<li class="list-group-item"> 
@@ -26,14 +25,20 @@ function load_all_posts() {
                             <div class="card-body">
                             <h5 class="card-title">${element.post}</h5>
                             <p class="card-text">Posted by: ${
-                                element.author
+                                element.author.username
                             }</p>
                             <p class="card-text"><small class="text-muted">${date.toUTCString()}</small></p>
-                            <a href="#" class="btn btn-primary">Go somewhere</a>
+                            <button id="follow-${
+                                element.author.id
+                            }"class="btn btn-primary" data-user_id=${
+                        element.author.id
+                    }>Follow user</button>
                             </div>
                         </div>
                     </li>`
                 );
+                document.getElementById(`follow-${element.author.id}`).onclick =
+                    (e) => follow(e);
             });
 
             console.log(result);
@@ -71,6 +76,23 @@ function create_post(e) {
             return response.json();
         })
         .then((result) => console.log("result", result));
+}
+
+function follow(e) {
+    console.log(e.target.dataset.user_id);
+    fetch("follow", {
+        method: "POST",
+        mode: "same-origin",
+        headers: {
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+                .value,
+        },
+        body: JSON.stringify({
+            user_id: 2,
+        }),
+    })
+        .then((res) => res.json())
+        .then((res) => console.log(res));
 }
 
 function error_handler(error) {
