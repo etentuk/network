@@ -79,4 +79,7 @@ def post(request):
     return JsonResponse({"message": "Post created successfully"})
 
 
-
+def posts(request):
+    all_posts = Post.objects.all()
+    all_posts = all_posts.order_by('-timestamp').all()
+    return JsonResponse([p.serialize() for p in all_posts], safe=False)

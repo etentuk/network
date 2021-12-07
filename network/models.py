@@ -15,10 +15,14 @@ class Post(models.Model):
     timestamp = DateTimeField(auto_now_add=True)
     likes = models.IntegerField(default=0)
 
+    def __str__(self):
+        return f"{self.post} by {self.author.username}"
+
     def serialize(self):
         return {
             "id": self.id,
             "post": self.post,
             "author": self.author.username,
-            "timestamp": self.timestamp,
+            "timestamp": self.timestamp.isoformat(),
+            "likes": self.likes
         }
