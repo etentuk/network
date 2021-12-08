@@ -10,7 +10,7 @@ urlpatterns = [
     path("register", views.register, name="register"),
 
     # API Routes
-    path("post", views.post, name="post"),
+    path("create_post", views.create_post, name="create_post"),
     path("posts", views.posts, name="posts"),
-    path("follow", views.follow, name="follow"),
+    path("<str:username>", views.profile_page, name="profile"),
 ]

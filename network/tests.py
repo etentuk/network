@@ -19,11 +19,11 @@ class UserTestCase(TestCase):
         self.user_2 = User.objects.create_user(
             "person_2", email="person_2@test.com", password="test")
 
-        post_1 = Post.objects.create(
+        self.post_1 = Post.objects.create(
             post="A test post", author=self.user_1
         )
 
-        post_2 = Post.objects.create(
+        self.post_2 = Post.objects.create(
             post="A Second test post", author=self.user_2
         )
 

@@ -18,10 +18,11 @@
         <a class="navbar-brand" href="#">Network</a>
 
         <div>
-            <ul class="navbar-nav mr-auto">
+            <ul class="navbar-nav mr-auto" id="nav">
                 {% if user.is_authenticated %}
+
                 <li class="nav-item">
-                    <a class="nav-link" href="#"><strong>{{ user.username }}</strong></a>
+                    <a class="nav-link"><strong id="logged_in_user">{{ user.username }}</strong></a>
                 </li>
                 {% endif %}
                 <li class="nav-item">

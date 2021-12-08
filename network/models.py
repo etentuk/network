@@ -3,6 +3,7 @@ from django.db import models
 from django.db.models.deletion import CASCADE
 from django.db.models.fields import DateTimeField
 from django.db.models.fields.related import ForeignKey
+from django.core.exceptions import ValidationError
 
 
 class User(AbstractUser):
@@ -15,14 +16,13 @@ class User(AbstractUser):
             "id": self.id,
             "username": self.username,
             "email": self.email,
+            "followers": self.followers.count(),
+            "following": self.following.count()
         }
-
-    def is_follower_valid(self):
-        return bool(self.following.filter(pk=self.id))
 
 
 class Post(models.Model):
-    post = models.TextField()
+    post = models.TextField(null=False, blank=False)
     author = ForeignKey(User, on_delete=CASCADE, related_name="posts")
     timestamp = DateTimeField(auto_now_add=True)
     likes = models.IntegerField(default=0)

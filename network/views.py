@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.core.exceptions import ObjectDoesNotExist
 
 
 from .models import Post, User
@@ -67,15 +68,17 @@ def register(request):
 
 
 @login_required
-def post(request):
+def create_post(request):
     # Creating a new post must be via POST
     if request.method != "POST":
         return JsonResponse({"error": "POST request required."}, status=400)
     data = json.loads(request.body)
     post = data.get("post", "")
+    if(post.strip() == ""):
+        return JsonResponse({"error": "Cannot create empty post"}, status=400)
     new_post = Post(post=post, author=request.user)
     new_post.save()
-    return JsonResponse({"message": "Post created successfully"})
+    return JsonResponse(new_post.serialize())
 
 
 def posts(request):
@@ -84,12 +87,32 @@ def posts(request):
     return JsonResponse([p.serialize() for p in all_posts], safe=False)
 
 
-@ login_required
-def follow(request):
-    data = json.loads(request.body)
-    follower = request.user
-    follow_user = User.objects.get(pk=data.get("user_id"))
-    if(follow_user == follower):
-        return JsonResponse({"error": "User cannot follow Self"}, status=400)
-    follower.following.add(follow_user)
-    return JsonResponse({"message": "Following successful"})
+def profile_page(request, username):
+    try:
+        user = User.objects.get(username=username)
+    except ObjectDoesNotExist:
+        return JsonResponse({"error": "User does not exist"})
+
+    if request.method == "GET":
+        all_posts = user.posts.all()
+        try:
+            following = bool(user.followers.get(
+                username=request.user.username))
+        except ObjectDoesNotExist:
+            following = False
+        all_posts = all_posts.order_by('-timestamp').all()
+        return JsonResponse({"posts": [p.serialize() for p in all_posts], "user": user.serialize(), "following": following})
+
+    if request.method == "PUT" and request.user.is_authenticated:
+        data = json.loads(request.body)
+        is_following = data.get("following", "")
+        if is_following:
+            request.user.following.remove(user)
+            return JsonResponse({"message": f"Successfully unfollowed {user.username.capitalize()}"}, status=200)
+        else:
+            if(user == request.user):
+                return JsonResponse({"error": "User cannot follow Self"}, status=403)
+            request.user.following.add(user)
+            return JsonResponse({"message": f"Successfully followed {user.username.capitalize()}"}, status=200)
+
+    return JsonResponse({"error": "Bad Request"}, status=400)
