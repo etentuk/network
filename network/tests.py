@@ -1,8 +1,6 @@
 from django.test import Client, TestCase, RequestFactory
 
-from network.views import follow
 from .models import User, Post
-from .views import follow
 
 # Create your tests here.
 
