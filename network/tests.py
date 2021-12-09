@@ -32,6 +32,6 @@ class UserTestCase(TestCase):
 
     def test_all_posts(self):
         c = Client()
-        response = c.get("/posts")
+        response = c.get("/posts/1")
         res = response.json()
         self.assertEqual(len(res), 2)
