@@ -18,22 +18,6 @@ document.addEventListener("DOMContentLoaded", function () {
     })();
 });
 
-// const routing = route => {
-//     if (!routes[route]){
-//         profile_page()
-//     }
-// }
-
-// // const routing = (route) => {
-// //     if(route ==)
-// //     if (routes[route]) {
-// //         routes[route]();
-// //         return;
-// //     } else if(routes[route.split('/')[0]]){
-
-// //     }
-// // };
-
 const routes = {
     all_posts: () => load_all_posts(),
     logged_in_user: () => load_all_posts(),
@@ -62,6 +46,8 @@ function singlePost(post, username, date, user_id) {
     return list;
 }
 
+function paginator() {}
+
 function load_all_posts() {
     document.querySelector("#not-found").style.display = "none";
     document.querySelector("#profile_page").style.display = "none";
@@ -69,7 +55,7 @@ function load_all_posts() {
     document.querySelector("#all_posts_page").style.display = "block";
     document.getElementById("all_posts_list").innerHTML = "";
 
-    fetch("/posts")
+    fetch("/posts/1")
         .then((response) => {
             if (!response.ok) {
                 throw new Error();
@@ -77,19 +63,28 @@ function load_all_posts() {
             return response.json();
         })
         .then((result) => {
-            result.forEach((element) => {
+            result.posts.forEach((element) => {
                 const date = new Date(element.timestamp);
-                document
-                    .getElementById("all_posts_list")
-                    .append(
-                        singlePost(
-                            element.post,
-                            element.author.username,
-                            date.toUTCString(),
-                            element.author.id
-                        )
-                    );
+                posts.push(
+                    singlePost(
+                        element.post,
+                        element.author.username,
+                        date.toUTCString(),
+                        element.author.id
+                    )
+                );
             });
+
+            for (let i = 1; i <= result.page_count; i++) {
+                document.querySelector("#all_posts_pagination").innerHTML += (
+                    <li class="page-item">
+                        <a class="page-link" href="#">
+                            ${i}
+                        </a>
+                    </li>
+                );
+            }
+
             document.querySelectorAll(".to_profile").forEach((element) => {
                 element.onclick = (e) => {
                     profile_page(e);
@@ -103,6 +98,8 @@ function load_all_posts() {
                 body: "Please try again!",
             });
         });
+
+    console.log(posts);
 }
 
 function create_post(e) {

@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
-
+from django.core.paginator import Paginator
 
 from .models import Post, User
 
@@ -81,10 +81,15 @@ def create_post(request):
     return JsonResponse(new_post.serialize())
 
 
-def posts(request):
+def posts(request, page):
     all_posts = Post.objects.all()
     all_posts = all_posts.order_by('-timestamp').all()
-    return JsonResponse([p.serialize() for p in all_posts], safe=False)
+    all_posts = Paginator(all_posts, 10)
+    current_page = all_posts.page(page)
+
+    return JsonResponse({
+        "page_count": all_posts.num_pages,
+        "posts": [p.serialize() for p in current_page]}, safe=False)
 
 
 def profile_page(request, username):
