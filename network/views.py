@@ -116,3 +116,12 @@ def profile_page(request, username):
             return JsonResponse({"message": f"Successfully followed {user.username.capitalize()}"}, status=200)
 
     return JsonResponse({"error": "Bad Request"}, status=400)
+
+
+@login_required
+def posts_following(request):
+    users_following = request.user.following.all()
+    all_posts = []
+    for user in users_following:
+        all_posts += [p.serialize() for p in user.posts.all()]
+    return JsonResponse(all_posts, safe=False)
