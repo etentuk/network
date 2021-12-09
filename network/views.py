@@ -92,7 +92,7 @@ def posts(request, page):
         "posts": [p.serialize() for p in current_page]}, safe=False)
 
 
-def profile_page(request, username):
+def profile_page(request, username, page):
     try:
         user = User.objects.get(username=username)
     except ObjectDoesNotExist:
@@ -106,8 +106,20 @@ def profile_page(request, username):
         except ObjectDoesNotExist:
             following = False
         all_posts = all_posts.order_by('-timestamp').all()
-        return JsonResponse({"posts": [p.serialize() for p in all_posts], "user": user.serialize(), "following": following})
+        all_posts = Paginator(all_posts, 10)
+        current_page = all_posts.page(page)
+        return JsonResponse({"page_count": all_posts.num_pages,
+                             "posts": [p.serialize() for p in current_page],
+                             "user": user.serialize(),
+                             "following": following
+                             })
 
+
+def follow(request, username):
+    try:
+        user = User.objects.get(username=username)
+    except ObjectDoesNotExist:
+        return JsonResponse({"error": "User does not exist"})
     if request.method == "PUT" and request.user.is_authenticated:
         data = json.loads(request.body)
         is_following = data.get("following", "")
@@ -119,14 +131,18 @@ def profile_page(request, username):
                 return JsonResponse({"error": "User cannot follow Self"}, status=403)
             request.user.following.add(user)
             return JsonResponse({"message": f"Successfully followed {user.username.capitalize()}"}, status=200)
-
     return JsonResponse({"error": "Bad Request"}, status=400)
 
 
 @login_required
-def posts_following(request):
+def posts_following(request, page):
     users_following = request.user.following.all()
     all_posts = []
     for user in users_following:
-        all_posts += [p.serialize() for p in user.posts.all()]
-    return JsonResponse(all_posts, safe=False)
+        all_posts += [p for p in user.posts.all()]
+    all_posts = Paginator(all_posts, 10)
+    current_page = all_posts.page(page)
+    return JsonResponse({
+        "page_count": all_posts.num_pages,
+        "posts": [p.serialize() for p in current_page]}, safe=False)
+    
