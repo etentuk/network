@@ -1,3 +1,7 @@
+window.onpopstate = function (event) {
+    routes[event.state?.page?.split("#")[1] || "all_posts"]();
+};
+
 document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("new_post").onsubmit = (e) => create_post(e);
     document.getElementById("follow_button").onclick = (e) => follow(e);
@@ -6,15 +10,35 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log(e.target.id);
         if (!e.target.id) return;
         history.pushState({ page: `#${e.target.id}` }, "", `#${e.target.id}`);
-        routes[e.target.id];
+        routes[e.target.id]();
     });
 
-    load_all_posts();
+    (() => {
+        routes[window.location.hash.split("#")[1] || "all_posts"]();
+    })();
 });
+
+// const routing = route => {
+//     if (!routes[route]){
+//         profile_page()
+//     }
+// }
+
+// // const routing = (route) => {
+// //     if(route ==)
+// //     if (routes[route]) {
+// //         routes[route]();
+// //         return;
+// //     } else if(routes[route.split('/')[0]]){
+
+// //     }
+// // };
 
 const routes = {
     all_posts: () => load_all_posts(),
-    profile_page_nav: () => profile_page(),
+    logged_in_user: () => load_all_posts(),
+    posts_following: () => followed_posts(),
+    profile_page: () => profile_page(e),
 };
 
 const pageUpdater = (updater) => {
@@ -41,6 +65,9 @@ function singlePost(post, username, date, user_id) {
 function load_all_posts() {
     document.querySelector("#not-found").style.display = "none";
     document.querySelector("#profile_page").style.display = "none";
+    document.querySelector("#following_posts_page").style.display = "none";
+    document.querySelector("#all_posts_page").style.display = "block";
+    document.getElementById("all_posts_list").innerHTML = "";
 
     fetch("/posts")
         .then((response) => {
@@ -64,7 +91,9 @@ function load_all_posts() {
                     );
             });
             document.querySelectorAll(".to_profile").forEach((element) => {
-                element.onclick = (e) => profile_page(e);
+                element.onclick = (e) => {
+                    profile_page(e);
+                };
             });
         })
         .catch((e) => {
@@ -105,10 +134,7 @@ function create_post(e) {
                 date.toUTCString(),
                 result.author.id
             );
-            console.log(new_post);
             document.getElementById("all_posts_list").prepend(new_post);
-
-            console.log("result", result);
         })
         .catch((e) => {
             console.log(e);
@@ -123,6 +149,11 @@ function profile_page(e) {
     document.querySelector("#not-found").style.display = "none";
     document.querySelector("#all_posts_page").style.display = "none";
     document.querySelector("#profile_page").style.display = "none";
+    document.querySelector("#following_posts_page").style.display = "none";
+    document.querySelectorAll(".to_profile").forEach((element) => {
+        element.removeEventListener("click", (e) => profile_page(e));
+    });
+    document.getElementById("profile_posts_list").innerHTML = "";
 
     fetch(`/${e.target.innerHTML}`)
         .then((response) => {
@@ -133,12 +164,10 @@ function profile_page(e) {
             console.log("result", result);
             document.querySelector("#username").innerText =
                 result.user.username;
-            document
-                .querySelector("#following")
-                .insertAdjacentHTML("beforeend", String(result.user.following));
-            document
-                .querySelector("#followers")
-                .insertAdjacentHTML("beforeend", String(result.user.followers));
+            document.querySelector("#following").innerHTML =
+                "Following: " + String(result.user.following);
+            document.querySelector("#followers").innerHTML =
+                "Followers: " + String(result.user.followers);
             document.getElementById("follow_button").innerText =
                 result.following ? "Unfollow" : "Follow";
             if (
@@ -207,9 +236,49 @@ function follow(e) {
         });
 }
 
+function followed_posts() {
+    document.querySelector("#profile_page").style.display = "none";
+    document.querySelector("#all_posts_page").style.display = "none";
+    document.querySelector("#not-found").style.display = "none";
+    document.querySelector("#following_posts_page").style.display = "block";
+    document.getElementById("following_posts_list").innerHTML = "";
+
+    fetch("posts/following")
+        .then((res) => {
+            if (!res.ok) throw new Error();
+            return res.json();
+        })
+        .then((result) => {
+            result.forEach((element) => {
+                const date = new Date(element.timestamp);
+                document
+                    .getElementById("following_posts_list")
+                    .append(
+                        singlePost(
+                            element.post,
+                            element.author.username,
+                            date.toUTCString(),
+                            element.author.id
+                        )
+                    );
+            });
+            document.querySelectorAll(".to_profile").forEach((element) => {
+                element.onclick = (e) => profile_page(e);
+            });
+        })
+        .catch((e) => {
+            console.log(e);
+            error_handler({
+                title: "Oops an Error Occurred!",
+                body: "Please try again!",
+            });
+        });
+}
+
 function error_handler(error) {
     document.querySelector("#profile_page").style.display = "none";
     document.querySelector("#all_posts_page").style.display = "none";
+    document.querySelector("#following_posts_page").style.display = "none";
     document.querySelector("#not-found").style.display = "block";
 
     document.getElementById("nf-title").innerHTML = error.title;
