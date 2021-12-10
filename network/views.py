@@ -78,7 +78,7 @@ def create_post(request):
         return JsonResponse({"error": "Cannot create empty post"}, status=400)
     new_post = Post(post=post, author=request.user)
     new_post.save()
-    return JsonResponse(new_post.serialize())
+    return JsonResponse(new_post.serialize(), status=200)
 
 
 def posts(request, page):
@@ -89,7 +89,7 @@ def posts(request, page):
 
     return JsonResponse({
         "page_count": all_posts.num_pages,
-        "posts": [p.serialize() for p in current_page]}, safe=False)
+        "posts": [p.serialize() for p in current_page]}, safe=False, status=200)
 
 
 def profile_page(request, username, page):
@@ -112,9 +112,10 @@ def profile_page(request, username, page):
                              "posts": [p.serialize() for p in current_page],
                              "user": user.serialize(),
                              "following": following
-                             })
+                             }, status=200)
 
 
+@login_required
 def follow(request, username):
     try:
         user = User.objects.get(username=username)
@@ -144,5 +145,20 @@ def posts_following(request, page):
     current_page = all_posts.page(page)
     return JsonResponse({
         "page_count": all_posts.num_pages,
-        "posts": [p.serialize() for p in current_page]}, safe=False)
-    
+        "posts": [p.serialize() for p in current_page]}, safe=False, status=200)
+
+
+@login_required
+def edit_post(request):
+    if request.method != "PUT":
+        return JsonResponse({"error": "Update Only Via PUT"}, status=400)
+    data = json.loads(request.body)
+    try:
+        post_object = Post.objects.get(pk=data.get("post_id"))
+    except ObjectDoesNotExist:
+        return JsonResponse({"error": "No post found"}, status=404)
+    if post_object.author != request.user:
+        return JsonResponse({"error": "Unauthorized!"}, status=401)
+    post_object.post = data.get("post")
+    post_object.save()
+    return JsonResponse(post_object.serialize(), status=200)
