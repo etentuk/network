@@ -34,22 +34,87 @@ const pagination_numbers = {
     followed: 1,
 };
 
-function singlePost(post, username, date, user_id) {
+function singlePost(post, username, date, post_id) {
     const list = document.createElement("li");
     list.className = "list-group-item";
     list.insertAdjacentHTML(
         "beforeend",
         `<div class="card">
             <div class="card-body">
-                <h5 class="card-title">${post}</h5>
+                <div id=id-${post_id}><h5 class="card-title">${post}</h5></div>
                 <div class="card-text to_profile" >${username}</div>
                 <p class="card-text"><small class="text-muted">${date}</small></p>
+                ${
+                    document.getElementById("logged_in_user") &&
+                    username ===
+                        document.getElementById("logged_in_user").innerText
+                        ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16" data-id=id-${post_id}>
+                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+              </svg>`
+                        : ""
+                }
             </div>
         </div>`
     );
 
     return list;
 }
+
+edit_post = (e) => {
+    const head = document.querySelector(`#${e.target.dataset.id}`);
+
+    e.target.style.display = "none";
+    head.querySelector("h5").style.display = "none";
+
+    const edit_field = document.createElement("textarea");
+
+    edit_field.className = "form-control";
+    edit_field.value = head.querySelector("h5").innerText;
+
+    const submit = document.createElement("button");
+    submit.innerHTML = "Save Post";
+    submit.className = "btn btn-primary";
+
+    head.insertAdjacentElement("beforeend", edit_field);
+    head.insertAdjacentElement("beforeend", submit);
+    
+    submit.onclick = () => {
+        fetch("edit_post", {
+            method: "PUT",
+            mode: "same-origin",
+            headers: {
+                "X-CSRFToken": document.querySelector(
+                    "[name=csrfmiddlewaretoken]"
+                ).value,
+            },
+            body: JSON.stringify({
+                post_id: e.target.dataset.id.split("-")[1],
+                post: edit_field.value,
+            }),
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    return response;
+                }
+                return response.json();
+            })
+            .then((result) => {
+                head.innerHTML = "";
+                const h5 = document.createElement("h5");
+                h5.className = "card-title";
+                h5.innerText = result.post;
+                head.insertAdjacentElement("beforeend", h5);
+                e.target.style.display = "inline-block";
+            })
+            .catch((e) => {
+                console.log(e);
+                error_handler({
+                    title: "Oops an Error Occurred!",
+                    body: "Please try again!",
+                });
+            });
+    };
+};
 
 function load_all_posts(page_num) {
     document.querySelector("#not-found").style.display = "none";
@@ -68,6 +133,7 @@ function load_all_posts(page_num) {
             return response.json();
         })
         .then((result) => {
+            console.log(result.posts);
             result.posts.forEach((element) => {
                 const date = new Date(element.timestamp);
                 document
@@ -77,9 +143,13 @@ function load_all_posts(page_num) {
                             element.post,
                             element.author.username,
                             date.toUTCString(),
-                            element.author.id
+                            element.id
                         )
                     );
+            });
+
+            document.querySelectorAll(".bi-pencil").forEach((pencil) => {
+                pencil.onclick = (e) => edit_post(e);
             });
 
             document.querySelector("#all_posts_pagination").insertAdjacentHTML(
@@ -155,7 +225,7 @@ function create_post(e) {
     })
         .then((response) => {
             if (!response.ok) {
-                return response;
+                throw new Error();
             }
             return response.json();
         })
@@ -165,8 +235,11 @@ function create_post(e) {
                 result.post,
                 result.author.username,
                 date.toUTCString(),
-                result.author.id
+                result.id
             );
+            document.querySelectorAll(".bi-pencil").forEach((pencil) => {
+                pencil.onclick = () => console.log("clicked");
+            });
             document.getElementById("all_posts_list").prepend(new_post);
         })
         .catch((e) => {
@@ -222,9 +295,13 @@ function profile_page(e, page_num) {
                             post.post,
                             post.author.username,
                             date.toUTCString(),
-                            post.author.id
+                            post.id
                         )
                     );
+            });
+
+            document.querySelectorAll(".bi-pencil").forEach((pencil) => {
+                pencil.onclick = () => console.log("clicked");
             });
 
             document
@@ -345,7 +422,7 @@ function followed_posts(page_num) {
                             element.post,
                             element.author.username,
                             date.toUTCString(),
-                            element.author.id
+                            post.id
                         )
                     );
             });
