@@ -34,21 +34,21 @@ const pagination_numbers = {
     followed: 1,
 };
 
-function singlePost(post, username, date, post_id) {
+function singlePost(post, username, date, post_id, page) {
     const list = document.createElement("li");
     list.className = "list-group-item";
     list.insertAdjacentHTML(
         "beforeend",
         `<div class="card">
             <div class="card-body">
-                <div id=id-${post_id}><h5 class="card-title">${post}</h5></div>
+                <div id=${page}-id-${post_id}><h5 class="card-title">${post}</h5></div>
                 <div class="card-text to_profile" >${username}</div>
                 <p class="card-text"><small class="text-muted">${date}</small></p>
                 ${
                     document.getElementById("logged_in_user") &&
                     username ===
                         document.getElementById("logged_in_user").innerText
-                        ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16" data-id=id-${post_id}>
+                        ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16" data-id=${page}-id-${post_id}>
                 <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
               </svg>`
                         : ""
@@ -60,7 +60,8 @@ function singlePost(post, username, date, post_id) {
     return list;
 }
 
-edit_post = (e) => {
+const edit_post = (e) => {
+    if (e.target.nodeName !== "svg") return;
     const head = document.querySelector(`#${e.target.dataset.id}`);
 
     e.target.style.display = "none";
@@ -77,7 +78,7 @@ edit_post = (e) => {
 
     head.insertAdjacentElement("beforeend", edit_field);
     head.insertAdjacentElement("beforeend", submit);
-    
+
     submit.onclick = () => {
         fetch("edit_post", {
             method: "PUT",
@@ -88,7 +89,7 @@ edit_post = (e) => {
                 ).value,
             },
             body: JSON.stringify({
-                post_id: e.target.dataset.id.split("-")[1],
+                post_id: e.target.dataset.id.split("-")[2],
                 post: edit_field.value,
             }),
         })
@@ -143,7 +144,8 @@ function load_all_posts(page_num) {
                             element.post,
                             element.author.username,
                             date.toUTCString(),
-                            element.id
+                            element.id,
+                            "all_posts"
                         )
                     );
             });
@@ -235,11 +237,10 @@ function create_post(e) {
                 result.post,
                 result.author.username,
                 date.toUTCString(),
-                result.id
+                result.id,
+                "create_post"
             );
-            document.querySelectorAll(".bi-pencil").forEach((pencil) => {
-                pencil.onclick = () => console.log("clicked");
-            });
+            new_post.querySelector(".bi-pencil").onclick = (e) => edit_post(e);
             document.getElementById("all_posts_list").prepend(new_post);
         })
         .catch((e) => {
@@ -258,6 +259,9 @@ function profile_page(e, page_num) {
     document.querySelector("#following_posts_page").style.display = "none";
     document.querySelectorAll(".to_profile").forEach((element) => {
         element.removeEventListener("click", (e) => profile_page(e));
+    });
+    document.querySelectorAll(".bi-pencil").forEach((pencil) => {
+        pencil.removeEventListener("click", (e) => edit_post(e));
     });
     document.getElementById("profile_posts_list").innerHTML = "";
     document.querySelector("#profile_posts_pagination").innerHTML = "";
@@ -295,13 +299,14 @@ function profile_page(e, page_num) {
                             post.post,
                             post.author.username,
                             date.toUTCString(),
-                            post.id
+                            post.id,
+                            "profile_page"
                         )
                     );
             });
 
             document.querySelectorAll(".bi-pencil").forEach((pencil) => {
-                pencil.onclick = () => console.log("clicked");
+                pencil.onclick = (e) => edit_post(e);
             });
 
             document
@@ -422,7 +427,8 @@ function followed_posts(page_num) {
                             element.post,
                             element.author.username,
                             date.toUTCString(),
-                            post.id
+                            post.id,
+                            "followed"
                         )
                     );
             });
