@@ -272,7 +272,7 @@ function load_all_posts(page_num) {
 
 function create_post(e) {
     e.preventDefault();
-    const post = document.getElementById("post").value;
+    const post = document.getElementById("post");
 
     fetch("create_post", {
         method: "POST",
@@ -282,7 +282,7 @@ function create_post(e) {
                 .value,
         },
         body: JSON.stringify({
-            post,
+            post: post.value,
         }),
     })
         .then((response) => {
@@ -303,9 +303,15 @@ function create_post(e) {
                 0
             );
             new_post.querySelector(".bi-pencil").onclick = (e) => edit_post(e);
+            post.value = "";
             document.getElementById("all_posts_list").prepend(new_post);
             document.querySelectorAll(".like").forEach((el) => {
                 el.onclick = (e) => like_unlike_post(e);
+            });
+            document.querySelectorAll(".to_profile").forEach((element) => {
+                element.onclick = (e) => {
+                    profile_page(e);
+                };
             });
         })
         .catch((e) => {
@@ -317,14 +323,18 @@ function create_post(e) {
         });
 }
 
-function profile_page(e, page_num) {
+function profile_page(e, username, page_num) {
     document.querySelector("#not-found").style.display = "none";
     document.querySelector("#all_posts_page").style.display = "none";
     document.querySelector("#profile_page").style.display = "none";
     document.querySelector("#following_posts_page").style.display = "none";
-    document.querySelectorAll(".to_profile").forEach((element) => {
-        element.removeEventListener("click", (e) => profile_page(e));
-    });
+
+    if (!username) {
+        document.querySelectorAll(".to_profile").forEach((element) => {
+            element.removeEventListener("click", (e) => profile_page(e));
+        });
+        username = e.target.innerHTML;
+    }
     document.querySelectorAll(".bi-pencil").forEach((pencil) => {
         pencil.removeEventListener("click", (e) => edit_post(e));
     });
@@ -334,7 +344,7 @@ function profile_page(e, page_num) {
     page_num = page_num ? page_num : 1;
     pagination_numbers.profile = parseInt(page_num);
 
-    fetch(`/${e.target.innerHTML}/${page_num}`)
+    fetch(`/${username}/${page_num}`)
         .then((response) => {
             if (!response.ok) throw new Error();
             return response.json();
@@ -433,13 +443,21 @@ function profile_page(e, page_num) {
                         )
                             return;
                         if (num === "Next") {
-                            profile_page(e, pagination_numbers.profile + 1);
+                            profile_page(
+                                e,
+                                username,
+                                pagination_numbers.profile + 1
+                            );
                             return;
                         } else if (num === "Previous") {
-                            profile(e, pagination_numbers.profile - 1);
+                            profile_page(
+                                e,
+                                username,
+                                pagination_numbers.profile - 1
+                            );
                             return;
                         } else if (typeof num !== number) return;
-                        profile(e, num);
+                        profile_page(e, username, num);
                     };
                 });
         })
@@ -475,9 +493,25 @@ function follow(e) {
         })
         .then((result) => {
             alert(result.message);
-            document.getElementById("follow_button").innerText = following
-                ? "Follow"
-                : "Unfollow";
+            if (following) {
+                document.getElementById("follow_button").innerText = "Follow";
+                document.getElementById("followers").innerText = `Followers: ${
+                    parseInt(
+                        document
+                            .getElementById("followers")
+                            .innerText.split(" ")[1]
+                    ) - 1
+                }`;
+            } else {
+                document.getElementById("follow_button").innerText = "Unfollow";
+                document.getElementById("followers").innerText = `Followers: ${
+                    parseInt(
+                        document
+                            .getElementById("followers")
+                            .innerText.split(" ")[1]
+                    ) + 1
+                }`;
+            }
         })
         .catch((e) => {
             console.log(e);
@@ -505,6 +539,11 @@ function followed_posts(page_num) {
             return res.json();
         })
         .then((result) => {
+            result.posts.sort((a, b) => {
+                a.timestamp = new Date(a.timestamp);
+                b.timestamp = new Date(b.timestamp);
+                return b.timestamp - a.timestamp;
+            });
             result.posts.forEach((element) => {
                 const date = new Date(element.timestamp);
                 let liked = undefined;

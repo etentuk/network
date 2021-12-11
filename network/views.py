@@ -2,6 +2,7 @@ import json
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.contrib.auth.decorators import login_required
+from django.db.models.query import QuerySet
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -157,6 +158,7 @@ def posts_following(request, page):
     all_posts = []
     for user in users_following:
         all_posts += [p for p in user.posts.all()]
+
     all_posts = Paginator(all_posts, 10)
     current_page = all_posts.page(page)
     liked_posts = request.user.liked_posts.all()
