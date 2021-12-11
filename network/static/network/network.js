@@ -34,16 +34,22 @@ const pagination_numbers = {
     followed: 1,
 };
 
-function singlePost(post, username, date, post_id, page) {
+function singlePost(post, username, date, post_id, page, liked, likes) {
     const list = document.createElement("li");
     list.className = "list-group-item";
     list.insertAdjacentHTML(
         "beforeend",
         `<div class="card">
             <div class="card-body">
-                <div id=${page}-id-${post_id}><h5 class="card-title">${post}</h5></div>
+                <div id=${page}-id-${post_id}>
+                <h5 class="card-title">${post}</h5>
+                <p class="card-text">Likes: ${likes}</p>
+
+                </div>
                 <div class="card-text to_profile" >${username}</div>
+
                 <p class="card-text"><small class="text-muted">${date}</small></p>
+                
                 ${
                     document.getElementById("logged_in_user") &&
                     username ===
@@ -53,6 +59,14 @@ function singlePost(post, username, date, post_id, page) {
               </svg>`
                         : ""
                 }
+                ${
+                    document.getElementById("logged_in_user")
+                        ? liked
+                            ? `<button class='btn btn-primary like' data-id=${post_id} data-target=${page}-id-${post_id}>Unlike</button>`
+                            : `<button class='btn btn-primary like' data-id=${post_id} data-target=${page}-id-${post_id}>Like</button>`
+                        : ""
+                }
+            
             </div>
         </div>`
     );
@@ -117,6 +131,33 @@ const edit_post = (e) => {
     };
 };
 
+const like_unlike_post = (e) => {
+    liked = e.target.innerText === "Unlike";
+    console.log(e);
+    fetch("like", {
+        method: "PUT",
+        mode: "same-origin",
+        headers: {
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+                .value,
+        },
+        body: JSON.stringify({
+            liked,
+            post_id: e.target.dataset.id,
+        }),
+    })
+        .then((response) => {
+            if (!response.ok) throw new Error();
+            return response.json();
+        })
+        .then((result) => {
+            document.querySelector(
+                `#${e.target.dataset.target} p`
+            ).innerText = `Likes: ${result.post_likes}`;
+            e.target.innerText = liked ? "Like" : "Unlike";
+        });
+};
+
 function load_all_posts(page_num) {
     document.querySelector("#not-found").style.display = "none";
     document.querySelector("#profile_page").style.display = "none";
@@ -134,9 +175,14 @@ function load_all_posts(page_num) {
             return response.json();
         })
         .then((result) => {
-            console.log(result.posts);
             result.posts.forEach((element) => {
                 const date = new Date(element.timestamp);
+                let liked = undefined;
+                if (document.getElementById("logged_in_user")) {
+                    liked = result.liked_posts.find(
+                        (post) => element.id === post.id
+                    );
+                }
                 document
                     .querySelector("#all_posts_list")
                     .append(
@@ -145,7 +191,9 @@ function load_all_posts(page_num) {
                             element.author.username,
                             date.toUTCString(),
                             element.id,
-                            "all_posts"
+                            "all_posts",
+                            !!liked,
+                            element.likes
                         )
                     );
             });
@@ -195,6 +243,10 @@ function load_all_posts(page_num) {
                 };
             });
 
+            document.querySelectorAll(".like").forEach((el) => {
+                el.onclick = (e) => like_unlike_post(e);
+            });
+
             document.querySelectorAll(".to_profile").forEach((element) => {
                 element.onclick = (e) => {
                     profile_page(e);
@@ -238,7 +290,8 @@ function create_post(e) {
                 result.author.username,
                 date.toUTCString(),
                 result.id,
-                "create_post"
+                "create_post",
+                0
             );
             new_post.querySelector(".bi-pencil").onclick = (e) => edit_post(e);
             document.getElementById("all_posts_list").prepend(new_post);
@@ -277,12 +330,23 @@ function profile_page(e, page_num) {
         .then((result) => {
             document.querySelector("#username").innerText =
                 result.user.username;
+
             document.querySelector("#following").innerHTML =
                 "Following: " + String(result.user.following);
+
             document.querySelector("#followers").innerHTML =
                 "Followers: " + String(result.user.followers);
-            document.getElementById("follow_button").innerText =
-                result.following ? "Unfollow" : "Follow";
+
+            console.log(document.querySelector("#logged_in_user"), "user");
+            if (document.getElementById("logged_in_user")) {
+                document.getElementById("follow_button").style.display =
+                    "inline-block";
+                document.getElementById("follow_button").innerText =
+                    result.following ? "Unfollow" : "Follow";
+            } else {
+                document.getElementById("follow_button").style.display = "none";
+            }
+
             if (
                 document.getElementById("logged_in_user") &&
                 result.user.username ===
@@ -290,8 +354,13 @@ function profile_page(e, page_num) {
             ) {
                 document.getElementById("follow_button").style.display = "none";
             }
+
             result.posts.forEach((post) => {
                 const date = new Date(post.timestamp);
+                let liked = undefined;
+                if (document.getElementById("logged_in_user")) {
+                    liked = result.liked_posts.find((p) => p.id === post.id);
+                }
                 document
                     .getElementById("profile_posts_list")
                     .append(
@@ -300,7 +369,9 @@ function profile_page(e, page_num) {
                             post.author.username,
                             date.toUTCString(),
                             post.id,
-                            "profile_page"
+                            "profile_page",
+                            liked,
+                            post.likes
                         )
                     );
             });
@@ -318,6 +389,7 @@ function profile_page(e, page_num) {
                     }"><div class="btn page-link profile_pagination">Previous</div></li>
                     `
                 );
+
             document
                 .querySelector("#profile_posts_pagination")
                 .insertAdjacentHTML(
@@ -329,6 +401,10 @@ function profile_page(e, page_num) {
                     }"><div class="btn page-link profile_pagination">Next</div></li>
                             `
                 );
+
+            document.querySelectorAll(".like").forEach((el) => {
+                el.onclick = (e) => like_unlike_post(e);
+            });
 
             document
                 .querySelectorAll(".profile_pagination")
@@ -420,6 +496,12 @@ function followed_posts(page_num) {
         .then((result) => {
             result.posts.forEach((element) => {
                 const date = new Date(element.timestamp);
+                let liked = undefined;
+                if (document.getElementById("logged_in_user")) {
+                    liked = result.liked_posts.find(
+                        (post) => element.id === post.id
+                    );
+                }
                 document
                     .getElementById("following_posts_list")
                     .append(
@@ -427,8 +509,10 @@ function followed_posts(page_num) {
                             element.post,
                             element.author.username,
                             date.toUTCString(),
-                            post.id,
-                            "followed"
+                            element.id,
+                            "followed",
+                            liked,
+                            element.likes
                         )
                     );
             });
@@ -481,6 +565,10 @@ function followed_posts(page_num) {
                 });
             document.querySelectorAll(".to_profile").forEach((element) => {
                 element.onclick = (e) => profile_page(e);
+            });
+
+            document.querySelectorAll(".like").forEach((el) => {
+                el.onclick = (e) => like_unlike_post(e);
             });
         })
         .catch((e) => {

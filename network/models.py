@@ -10,6 +10,9 @@ class User(AbstractUser):
     following = models.ManyToManyField(
         "self", symmetrical=False, related_name="followers", blank=True
     )
+    liked_posts = models.ManyToManyField(
+        "Post", related_name="post_likes", blank=True
+    )
 
     def serialize(self):
         return {
@@ -17,7 +20,7 @@ class User(AbstractUser):
             "username": self.username,
             "email": self.email,
             "followers": self.followers.count(),
-            "following": self.following.count()
+            "following": self.following.count(),
         }
 
 
@@ -25,7 +28,6 @@ class Post(models.Model):
     post = models.TextField(null=False, blank=False)
     author = ForeignKey(User, on_delete=CASCADE, related_name="posts")
     timestamp = DateTimeField(auto_now_add=True)
-    likes = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.post} by {self.author.username}"
@@ -36,5 +38,5 @@ class Post(models.Model):
             "post": self.post,
             "author": self.author.serialize(),
             "timestamp": self.timestamp.isoformat(),
-            "likes": self.likes
+            "likes": self.post_likes.count()
         }
