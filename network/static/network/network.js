@@ -291,10 +291,14 @@ function create_post(e) {
                 date.toUTCString(),
                 result.id,
                 "create_post",
+                false,
                 0
             );
             new_post.querySelector(".bi-pencil").onclick = (e) => edit_post(e);
             document.getElementById("all_posts_list").prepend(new_post);
+            document.querySelectorAll(".like").forEach((el) => {
+                el.onclick = (e) => like_unlike_post(e);
+            });
         })
         .catch((e) => {
             console.log(e);

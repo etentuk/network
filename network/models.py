@@ -11,7 +11,7 @@ class User(AbstractUser):
         "self", symmetrical=False, related_name="followers", blank=True
     )
     liked_posts = models.ManyToManyField(
-        "Post", related_name="post_likes", blank=True
+        "Post", related_name="post_likes", blank=True, default=0
     )
 
     def serialize(self):
