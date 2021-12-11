@@ -163,7 +163,7 @@ def posts_following(request, page):
     return JsonResponse({
         "page_count": all_posts.num_pages,
         "liked_posts": [p.serialize() for p in liked_posts],
-        "user": user.serialize(),
+        "user": request.user.serialize(),
         "posts": [p.serialize() for p in current_page]}, safe=False, status=200)
 
 

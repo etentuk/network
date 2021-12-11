@@ -5,43 +5,55 @@
 
 <div class="container">
     <div id="all_posts_page">
-        <h1>All Posts</h1>
-        <form id="new_post">
+        <div class="mb-3">
+            <h1>All Posts</h1>
+        </div>
+        {% if user.is_authenticated%}
+        <form id="new_post" style="padding:20px">
             {% csrf_token %}
-            <textarea name="post" class="form-control" id="post" cols="30" rows="10"></textarea>
-            <button type="submit" class="btn btn-primary mb-3">Post</button>
+            <div class="mb-3">
+                <textarea name="post" class="form-control" id="post" cols="30" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+
+                <button type="submit" class="btn btn-primary mb-3">Post</button>
+            </div>
         </form>
-        <ul id="all_posts_list" class="list-group list-group-flush">
+        {% endif %}
+        <ul id="all_posts_list" class="list-group list-group-flush mb-3">
         </ul>
         <ul class="pagination justify-content-center" id="all_posts_pagination">
         </ul>
     </div>
 
-    <div id="profile_page" class="row">
-        <div class="col card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 id="username"></h5>
-                <button id="follow_button" class="btn btn-primary"></button>
-                <p class="card-text" id="following"></p>
-                <p class="card-text" id="followers"></p>
+    <div id="profile_page">
+        <div class="d-flex flex-row">
+            <div class="col card" style="height: fit-content; margin-top: 0.75rem; width:30%;">
+                <div class="card-body">
+                    <div class="d-flex flex-row justify-content-between">
+                        <h5 id="username"></h5>
+                        <button id="follow_button" class="btn btn-primary"></button>
+                    </div>
+                    <p class="card-text" id="following"></p>
+                    <p class="card-text" id="followers"></p>
+                </div>
             </div>
-        </div>
-        <div class="col" id="profile_posts">
-            <ul id="profile_posts_list" class="list-group list-group-flush">
-            </ul>
-            <ul class="pagination justify-content-center" id="profile_posts_pagination">
-            </ul>
+            <div class="flex-grow-1" id="profile_posts">
+                <ul id="profile_posts_list" class="list-group list-group-flush mb-3">
+                </ul>
+                <ul class="pagination justify-content-center" id="profile_posts_pagination">
+                </ul>
+            </div>
         </div>
 
     </div>
 
-    <div id="following_posts_page">
+    <div id="following_posts_page" class="container">
         <h1>Followed Users Posts</h1>
-        <ul id="following_posts_list" class="list-group list-group-flush">
+        <ul id="following_posts_list" class="list-group list-group-flush mb-3">
         </ul>
         <ul class="pagination justify-content-center" id="followed_posts_pagination">
         </ul>
-
     </div>
 
 </div>
