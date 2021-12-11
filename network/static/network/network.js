@@ -3,9 +3,10 @@ window.onpopstate = function (event) {
 };
 
 document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("new_post").onsubmit = (e) => create_post(e);
-    document.getElementById("follow_button").onclick = (e) => follow(e);
-
+    if (document.getElementById("logged_in_user")) {
+        document.getElementById("new_post").onsubmit = (e) => create_post(e);
+        document.getElementById("follow_button").onclick = (e) => follow(e);
+    }
     document.querySelector("#nav").addEventListener("click", (e) => {
         if (!e.target.id) return;
         history.pushState({ page: `#${e.target.id}` }, "", `#${e.target.id}`);
@@ -21,7 +22,6 @@ const routes = {
     all_posts: () => load_all_posts(),
     logged_in_user: () => load_all_posts(),
     posts_following: () => followed_posts(),
-    profile_page: () => profile_page(e),
 };
 
 const pageUpdater = (updater) => {
@@ -42,14 +42,8 @@ function singlePost(post, username, date, post_id, page, liked, likes) {
         `<div class="card">
             <div class="card-body">
                 <div id=${page}-id-${post_id}>
-                <h5 class="card-title">${post}</h5>
-                <p class="card-text">Likes: ${likes}</p>
-
-                </div>
-                <div class="card-text to_profile" >${username}</div>
-
-                <p class="card-text"><small class="text-muted">${date}</small></p>
-                
+                <div class="d-flex flex-row">
+                <h5 class="card-title flex-grow-1">${post}</h5>
                 ${
                     document.getElementById("logged_in_user") &&
                     username ===
@@ -59,6 +53,15 @@ function singlePost(post, username, date, post_id, page, liked, likes) {
               </svg>`
                         : ""
                 }
+                </div>
+                <p class="card-text">Likes: ${likes}</p>
+
+                </div>
+                <div class="card-text to_profile btn btn-light" >${username}</div>
+
+                <p class="card-text"><small class="text-muted">${date}</small></p>
+                <div class="d-inline-flex justify-content-between">
+                
                 ${
                     document.getElementById("logged_in_user")
                         ? liked
@@ -66,6 +69,10 @@ function singlePost(post, username, date, post_id, page, liked, likes) {
                             : `<button class='btn btn-primary like' data-id=${post_id} data-target=${page}-id-${post_id}>Like</button>`
                         : ""
                 }
+
+                
+
+                </div>
             
             </div>
         </div>`
@@ -79,19 +86,21 @@ const edit_post = (e) => {
     const head = document.querySelector(`#${e.target.dataset.id}`);
 
     e.target.style.display = "none";
-    head.querySelector("h5").style.display = "none";
+    const headH5 = head.querySelector("h5");
+    headH5.style.display = "none";
 
     const edit_field = document.createElement("textarea");
 
-    edit_field.className = "form-control";
+    edit_field.className = "form-control mb-3";
     edit_field.value = head.querySelector("h5").innerText;
 
     const submit = document.createElement("button");
     submit.innerHTML = "Save Post";
-    submit.className = "btn btn-primary";
+    submit.className = "btn btn-primary mb-3";
 
-    head.insertAdjacentElement("beforeend", edit_field);
-    head.insertAdjacentElement("beforeend", submit);
+    head.insertAdjacentElement("afterbegin", submit);
+
+    head.insertAdjacentElement("afterbegin", edit_field);
 
     submit.onclick = () => {
         fetch("edit_post", {
@@ -114,12 +123,11 @@ const edit_post = (e) => {
                 return response.json();
             })
             .then((result) => {
-                head.innerHTML = "";
-                const h5 = document.createElement("h5");
-                h5.className = "card-title";
-                h5.innerText = result.post;
-                head.insertAdjacentElement("beforeend", h5);
-                e.target.style.display = "inline-block";
+                submit.style.display = "none";
+                edit_field.style.display = "none";
+                headH5.style.display = "flex";
+                headH5.innerText = result.post;
+                e.target.style.display = "flex";
             })
             .catch((e) => {
                 console.log(e);
@@ -341,7 +349,6 @@ function profile_page(e, page_num) {
             document.querySelector("#followers").innerHTML =
                 "Followers: " + String(result.user.followers);
 
-            console.log(document.querySelector("#logged_in_user"), "user");
             if (document.getElementById("logged_in_user")) {
                 document.getElementById("follow_button").style.display =
                     "inline-block";
