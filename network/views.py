@@ -86,6 +86,12 @@ def posts(request, page):
     all_posts = all_posts.order_by('-timestamp').all()
     all_posts = Paginator(all_posts, 10)
     current_page = all_posts.page(page)
+    if(request.user.is_authenticated):
+        liked_posts = request.user.liked_posts.all()
+        return JsonResponse({
+            "page_count": all_posts.num_pages,
+            "liked_posts": [p.serialize() for p in liked_posts],
+            "posts": [p.serialize() for p in current_page]}, safe=False, status=200)
 
     return JsonResponse({
         "page_count": all_posts.num_pages,
@@ -108,6 +114,16 @@ def profile_page(request, username, page):
         all_posts = all_posts.order_by('-timestamp').all()
         all_posts = Paginator(all_posts, 10)
         current_page = all_posts.page(page)
+
+        if(request.user.is_authenticated):
+            liked_posts = request.user.liked_posts.all()
+            return JsonResponse({
+                "page_count": all_posts.num_pages,
+                "liked_posts": [p.serialize() for p in liked_posts],
+                "posts": [p.serialize() for p in current_page],
+                "user": user.serialize(),
+                "following": following}, safe=False, status=200)
+
         return JsonResponse({"page_count": all_posts.num_pages,
                              "posts": [p.serialize() for p in current_page],
                              "user": user.serialize(),
@@ -143,8 +159,11 @@ def posts_following(request, page):
         all_posts += [p for p in user.posts.all()]
     all_posts = Paginator(all_posts, 10)
     current_page = all_posts.page(page)
+    liked_posts = request.user.liked_posts.all()
     return JsonResponse({
         "page_count": all_posts.num_pages,
+        "liked_posts": [p.serialize() for p in liked_posts],
+        "user": user.serialize(),
         "posts": [p.serialize() for p in current_page]}, safe=False, status=200)
 
 
@@ -162,3 +181,21 @@ def edit_post(request):
     post_object.post = data.get("post")
     post_object.save()
     return JsonResponse(post_object.serialize(), status=200)
+
+
+@login_required
+def like_unlike(request):
+    if request.method == "PUT" and request.user.is_authenticated:
+        data = json.loads(request.body)
+        try:
+            post_object = Post.objects.get(pk=data.get("post_id"))
+        except ObjectDoesNotExist:
+            return JsonResponse({"error": "No post found"}, status=404)
+        liked = data.get("liked")
+        if liked:
+            request.user.liked_posts.remove(post_object)
+            return JsonResponse({"post_likes": post_object.post_likes.all().count()}, status=200)
+        else:
+            request.user.liked_posts.add(post_object)
+            return JsonResponse({"post_likes": post_object.post_likes.all().count()}, status=200)
+    return JsonResponse({"error": "Bad Request"}, status=400)
